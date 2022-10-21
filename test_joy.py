@@ -1,7 +1,7 @@
 import RPi.GPIO as GPIO
 import sys
 
-duty = 100
+duty = 80
 
 #GPIO initial set
 GPIO.setmode(GPIO.BCM)
@@ -11,10 +11,10 @@ GPIO.setup(23, GPIO.OUT)
 GPIO.setup(24, GPIO.OUT)
 
 
-p1 = GPIO.PWM(27, 100) #50Hz
-p2 = GPIO.PWM(22, 100) #50Hz
-p3 = GPIO.PWM(23, 100) #50Hz
-p4 = GPIO.PWM(24, 100) #50Hz
+p1 = GPIO.PWM(27, 1000) #50Hz
+p2 = GPIO.PWM(22, 1000) #50Hz
+p3 = GPIO.PWM(23, 1000) #50Hz
+p4 = GPIO.PWM(24, 1000) #50Hz
 
 p1.start(0)
 p2.start(0)

@@ -5,6 +5,8 @@ import RPi.GPIO as GPIO
 import sys
 from matplotlib import pyplot as plt
 from numpy.random import *
+import time
+
 
 #initialize PID parameter
 
@@ -14,17 +16,27 @@ e = 0 #error
 e1 = 0 #pre error
 acc = 0 #accumulation
 dif = 0 #deviation
-Kp = 15/340
+Kp = 50/300
 Ki = 0.1
 Kd = 0.1
 
 t= 100
 
+count_time = 0
+
 #graff
 x_list = []
 y_list = []
 
+def tic():
+    global start_time_tictoc
+    start_time_tictoc = time.time()
 
+def toc(tag="elapsed time"):
+    if "start_time_tictoc" in globals():
+        print("{}: {:.9f} [sec]".format(tag, time.time() - start_time_tictoc))
+    else:
+        print("tic has not been called")
 
 
 duty = 85
@@ -39,10 +51,10 @@ GPIO.setup(24, GPIO.OUT)
 
 
 
-p1 = GPIO.PWM(27, 1000) #50Hz
-p2 = GPIO.PWM(22, 1000) #50Hz
-p3 = GPIO.PWM(23, 1000) #50Hz
-p4 = GPIO.PWM(24, 1000) #50Hz
+p1 = GPIO.PWM(27, 10000) #50Hz
+p2 = GPIO.PWM(22, 10000) #50Hz
+p3 = GPIO.PWM(23, 10000) #50Hz
+p4 = GPIO.PWM(24, 10000) #50Hz
 
 p1.start(0)
 p2.start(0)
@@ -95,29 +107,53 @@ while True:
                 e = goal - C1_x
                 acc = acc + e*i
                 dif = (e - e1) / i
-                print(retval)
+                #print(C1_x)
 
                 output = Kp * e
                 e1 = e
 
-                duty_out = np.clip(output,-15,15)
-                print(duty_out)
+                duty_out = abs(np.clip(output,-50,50))
+                duty_in = np.clip(duty_out,20,50)
+                #print(duty_out)
+                x_list.append(i)
+                y_list.append(output)
 
-                if retval == True:    
-                    p1.ChangeDutyCycle(duty+duty_out)
+                
+
+                if 0 < C1_x < 320:
+                    p1.ChangeDutyCycle(duty_out)
                     p2.ChangeDutyCycle(0)
-                    p3.ChangeDutyCycle(duty-duty_out)
+                    p3.ChangeDutyCycle(0)
                     p4.ChangeDutyCycle(0)
 
-                    x_list.append(i)
-                    y_list.append(output)
-                else :
+                    count_time = 0
+                
+
+
+                    
+                elif 320 <= C1_x <= 360:
+                    count_time = count_time + 1
                     p1.ChangeDutyCycle(0)
                     p2.ChangeDutyCycle(0)
                     p3.ChangeDutyCycle(0)
                     p4.ChangeDutyCycle(0)
-                    print (retval)
+                    print(count_time)
+                    
+                    if count_time > 20:
+                        p1.ChangeDutyCycle(duty_out)
+                        p2.ChangeDutyCycle(0)
+                        p3.ChangeDutyCycle(duty_out)
+                        p4.ChangeDutyCycle(0)
+                        
 
+
+                elif 360 < C1_x < 680:
+                    p1.ChangeDutyCycle(0)
+                    p2.ChangeDutyCycle(0)
+                    p3.ChangeDutyCycle(duty_out)
+                    p4.ChangeDutyCycle(0)
+
+                    count_time = 0
 
 
 

@@ -46,6 +46,10 @@ def toc(tag="elapsed time"):
         print("tic has not been called")
 
 
+def polygon_area(N, P):
+    return abs(sum(P[i][0]*P[i-1][1] - P[i][1]*P[i-1][0] for i in range(N)))/2
+
+
 duty = 85
 
 #GPIO initial set
@@ -89,6 +93,8 @@ video = cv2.VideoWriter('video1.mp4',fourcc,fps,size)
 detector = cv2.QRCodeDetector()
 test_data = "qr/2/1"
 firstlookID = -1
+points = []
+qr_s = 0
 
 #print(dir(GPIO))
 
@@ -103,19 +109,20 @@ while True:
     #detect and decode to QR
     retval, decoded_info, points, staraight_qrcode = detector.detectAndDecodeMulti(img) #decoded_info:(('str'),('str'),...)
     data_list = [] 
-    ##print(data_list)
     for i in decoded_info:
         #print(i)
         data_list.append(list(map(int, i.split()))) #decoded_info[i]'s str are splited to int type and list type then append to data_list
         
         data_listex = [30, 2, 1] #rosからsubしたstuck_robotのID
-        print(data_list)
+        #print(data_list) ##confirm QR cap
     for i, data in enumerate(data_list): #data youso toridasi,  data_list:(('int,int,int'),('int,int,int'),...),  data:('int,int,int')
         if data == []:
             #print(data)
             continue
         elif data[1] == data_listex[1]:
-           # print(points[i])
+            #print(points[i])
+            print(polygon_area(4,points[i]))
+            qr_s = polygon_area(4,points[i])
             if firstlookID == -1: #when camera look ID first time, lookID is changed 
                 firstlookID = data[2]
 
@@ -141,7 +148,31 @@ while True:
                     #print(duty_out)
                 x_list.append(i)
                 y_list.append(output)
-                if timekey == 0:
+                if qr_s < 14000 and timekey == 0:
+                    if 0 < C1_x < 340:
+                        p1.ChangeDutyCycle(duty_out)
+                        p2.ChangeDutyCycle(0)
+                        p3.ChangeDutyCycle(0)
+                        p4.ChangeDutyCycle(0)
+
+
+                    elif 340 <= C1_x < 680:
+                        p1.ChangeDutyCycle(0)
+                        p2.ChangeDutyCycle(0)
+                        p3.ChangeDutyCycle(duty_out)
+                        p4.ChangeDutyCycle(0)
+
+
+                    time.sleep(0.1)
+
+                    p1.ChangeDutyCycle(0)
+                    p2.ChangeDutyCycle(0)
+                    p3.ChangeDutyCycle(0)
+                    p4.ChangeDutyCycle(0)
+
+                    time.sleep(0.65)    
+
+                elif qr_s >= 14000 and timekey == 0:  #if QR_S comes 
                     if 0 < C1_x < 320:
                         p1.ChangeDutyCycle(duty_out)
                         p2.ChangeDutyCycle(0)
@@ -155,8 +186,17 @@ while True:
                         p2.ChangeDutyCycle(0)
                         p3.ChangeDutyCycle(0)
                         p4.ChangeDutyCycle(0)
-                        print(count_time)
+                        print('timekey:',timekey,count_time)
                         if count_time >= 4:
+                            p1.ChangeDutyCycle(duty)
+                            p2.ChangeDutyCycle(0)
+                            p3.ChangeDutyCycle(duty)
+                            p4.ChangeDutyCycle(0)
+                            time.sleep(3.8)
+                            p1.ChangeDutyCycle(0)
+                            p2.ChangeDutyCycle(0)
+                            p3.ChangeDutyCycle(0)
+                            p4.ChangeDutyCycle(0)
                             timekey = 1
 
 
@@ -177,67 +217,14 @@ while True:
                     p4.ChangeDutyCycle(0)
 
                     time.sleep(0.65)    
-
-                elif timekey == 1:  #if timekey = 1
-                    p1.ChangeDutyCycle(duty)
-                    p2.ChangeDutyCycle(0)
-                    p3.ChangeDutyCycle(duty)
-                    p4.ChangeDutyCycle(0)
-                    time.sleep(0.5)
-                    timekey == 2
-                    p1.ChangeDutyCycle(0)
-                    p2.ChangeDutyCycle(0)
-                    p3.ChangeDutyCycle(0)
-                    p4.ChangeDutyCycle(0)
-
-                elif timekey == 2:
-                    if 0 < C1_x < 320:
-                        p1.ChangeDutyCycle(duty_out)
-                        p2.ChangeDutyCycle(0)
-                        p3.ChangeDutyCycle(0)
-                        p4.ChangeDutyCycle(0)
-                        count_time = 0
-
-                    elif 320 <= C1_x <= 360:
-                        count_time = count_time + 1
-                        p1.ChangeDutyCycle(0)
-                        p2.ChangeDutyCycle(0)
-                        p3.ChangeDutyCycle(0)
-                        p4.ChangeDutyCycle(0)
-                        print(count_time)
-                        if count_time >= 4:
-                            timekey = 3
-
-
-                    elif 360 < C1_x < 680:
-                        p1.ChangeDutyCycle(0)
-                        p2.ChangeDutyCycle(0)
-                        p3.ChangeDutyCycle(duty_out)
-                        p4.ChangeDutyCycle(0)
-
-                        count_time = 0
-
-
-                    time.sleep(0.1)
-
-                    p1.ChangeDutyCycle(0)
-                    p2.ChangeDutyCycle(0)
-                    p3.ChangeDutyCycle(0)
-                    p4.ChangeDutyCycle(0)
-
-                    time.sleep(0.65)
-
-                elif timekey == 3:
-                    p1.ChangeDutyCycle(duty)
-                    p2.ChangeDutyCycle(0)
-                    p3.ChangeDutyCycle(duty)
-                    p4.ChangeDutyCycle(0)                  
-
-    if (GPIO.input(6) + GPIO.input(7) + GPIO.input(5)) >= 2:  #docking is success. Then, contoroler is finish!
-        p1.ChangeDutyCycle(0)
-        p2.ChangeDutyCycle(0)
-        p3.ChangeDutyCycle(0)
-        p4.ChangeDutyCycle(0) 
+                #docking is success. Then, contoroler is finish!
+            if (GPIO.input(6) + GPIO.input(7) + GPIO.input(5)) >= 2:
+                p1.ChangeDutyCycle(0)
+                p2.ChangeDutyCycle(0)
+                p3.ChangeDutyCycle(0)
+                p4.ChangeDutyCycle(0)
+                print('finish')
+                
 
     cv2.imshow("QRCODEscanner", output_img)
     #c = sys.stdin.read(1)    
